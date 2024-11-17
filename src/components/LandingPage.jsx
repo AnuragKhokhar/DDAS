@@ -104,7 +104,7 @@ const LandingPage = () => {
   return (
     <div>
       <div id="navbar">
-        <div id="name">DupAlert</div>
+        <div id="name">Duplicate Alert System</div>
         <div id="upload">
           <Upload list={list} setList={setList} holder={holder} />
           <button className="button-68" id="lo" onClick={signOutUser}>

@@ -25,7 +25,7 @@ const Home = () => {
   }, [navigate]);
   return (
     <div className={styles.container}>
-      <div className={styles.welcomeText}>DupAlerts</div>
+      <div className={styles.welcomeText}>Alert System For Data Download Duplication</div>
       <Link to="/login" className={styles.loginLink}>
         Click here to login
       </Link>
