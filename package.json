@@ -45,6 +45,7 @@
   "devDependencies": {
     "crypto-browserify": "^3.12.1",
     "os-browserify": "^0.3.0",
-    "path-browserify": "^1.0.1"
+    "path-browserify": "^1.0.1",
+    "tailwindcss": "^3.4.15"
   }
 }

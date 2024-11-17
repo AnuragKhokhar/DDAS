@@ -175,20 +175,39 @@ const Upload = ({ list, setList, holder }) => {
                     value={dName}
                     onChange={(e) => setDName(e.target.value)}
                   >
-                    <option value="" disabled>
-                      Select Department
+                    <option value="Computer Science & Engineering Department">
+                        Computer Science & Engineering Department
                     </option>
-                    <option value="Indian Meteorological department (IMD)">
-                      Indian Meteorological department (IMD)
+                    <option value="Electronics and Electrical Department">
+                        Electronics and Electrical Department
                     </option>
-                    <option value="National center for medium range weather forecasting (NCMRWF)">
-                      National center for medium range weather forecasting
-                      (NCMRWF)
+                    <option value="Mechanical Engineering Department">
+                        Mechanical Engineering Department
                     </option>
-                    <option value="Indian Institute of Tropical Metereologoy (IITM) Pune">
-                      Indian Institute of Tropical Metereologoy (IITM) Pune
+                    <option value="Civil Engineering Department">
+                        Civil Engineering Department
                     </option>
-                    <option value="Miscellaneous">Miscellaneous</option>
+                    <option value="Chemical Technology Department">
+                        Chemical Technology Department
+                    </option>
+                    <option value="Paint Technology Department">
+                        Paint Technology Department
+                    </option>
+                    <option value="Plastic Technology Department">
+                        Plastic Technology Department
+                    </option>
+                    <option value="Oil Technology Department">
+                        Oil Technology Department
+                    </option>
+                    <option value="Food Technology Department">
+                        Food Technology Department
+                    </option>
+                    <option value="Bio Technology Department">
+                        Bio Technology Department
+                    </option>
+                    <option value="Leather Technology Department">
+                        Leather Technology Department
+                    </option>
                   </select>
                 </div>
                 <FileUploader

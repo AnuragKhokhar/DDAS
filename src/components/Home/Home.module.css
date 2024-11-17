@@ -4,7 +4,7 @@
     align-items: center;
     flex-direction: column;
     height: 100vh;
-    background: linear-gradient(to bottom right, #ff416c, #ff4b2b);
+    background: linear-gradient(to bottom right, #74f2f4, #ff4b2b);
     font-family: "Poppins", sans-serif;
     text-align: center;
     color: #ffffff;
@@ -25,7 +25,7 @@
   
   .loginLink {
     font-size: 22px;
-    color: #ffd700;
+    color: #030303;
     cursor: pointer;
     text-decoration: none;
     opacity: 0;

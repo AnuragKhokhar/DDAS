@@ -104,13 +104,13 @@ const LandingPage = () => {
   return (
     <div>
       <div id="navbar">
-        <div id="name">Duplicate Alert System</div>
+        <div id="name">Alert System for Data Download Duplication</div>
         <div id="upload">
           <Upload list={list} setList={setList} holder={holder} />
           <button className="button-68" id="lo" onClick={signOutUser}>
             LOGOUT
           </button>
-          <div id="email">{holder ? holder[0].toUpperCase() : ""}</div>
+          <button id="email">{holder ? holder[0].toUpperCase() : ""}</button>
         </div>
       </div>
       <div id="search">
@@ -136,16 +136,39 @@ const LandingPage = () => {
         />
         <select id="dept" onChange={(e) => setSelectedDept(e.target.value)}>
           <option value="ALL">ALL</option>
-          <option value="Indian Meteorological department (IMD)">
-            Indian Meteorological department (IMD)
+          <option value="Computer Science & Engineering Department">
+          Computer Science & Engineering Department
           </option>
-          <option value="National center for medium range weather forecasting (NCMRWF)">
-            National center for medium range weather forecasting (NCMRWF)
+          <option value="Electronics and Electrical Department">
+              Electronics and Electrical Department
           </option>
-          <option value="Indian Institute of Tropical Metereologoy (IITM) Pune">
-            Indian Institute of Tropical Metereologoy (IITM) Pune
+          <option value="Mechanical Engineering Department">
+              Mechanical Engineering Department
           </option>
-          <option value="Miscellaneous">Miscellaneous</option>
+          <option value="Civil Engineering Department">
+              Civil Engineering Department
+          </option>
+          <option value="Chemical Technology Department">
+              Chemical Technology Department
+          </option>
+          <option value="Paint Technology Department">
+              Paint Technology Department
+          </option>
+          <option value="Plastic Technology Department">
+              Plastic Technology Department
+          </option>
+          <option value="Oil Technology Department">
+              Oil Technology Department
+          </option>
+          <option value="Food Technology Department">
+              Food Technology Department
+          </option>
+          <option value="Bio Technology Department">
+              Bio Technology Department
+          </option>
+          <option value="Leather Technology Department">
+              Leather Technology Department
+          </option>
         </select>
       </div>
       <div id="container">
@@ -161,7 +184,7 @@ const LandingPage = () => {
         ))}
       </div>
       <div id="footer">
-        <pre>Made with 💖 © Team Shipwrecked Survivors</pre>
+        <pre>Made with 💖 © Alert System for Data Download Duplication</pre>
       </div>
     </div>
   );
