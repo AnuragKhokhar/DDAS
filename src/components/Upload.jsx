@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { storage } from "../appwriteConfig";
 import Modal from "react-modal";
 import { FileUploader } from "react-drag-drop-files";
 import ReactLoading from "react-loading";
+import { getFileHash } from "../utils/fileUtils";
+import { checkDuplicateHash, saveFileMetadata, uploadFileToStorage } from "../services/fileService";
+import { toast } from "react-toastify";
 
 const Upload = ({ onUploadSuccess }) => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [nfile, setNFile] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const bucketId = process.env.REACT_APP_APPWRITE_BUCKET_ID;
 
   const handleChange = (file) => setFile(file);
 
@@ -23,18 +23,29 @@ const Upload = ({ onUploadSuccess }) => {
 
   const uploadFileToAppwrite = async () => {
     if (!file || !nfile) {
-      alert("Please provide a file and a name.");
+      toast.error("Please provide a file and a name.");
       return;
     }
     setLoading(true);
     try {
-      const response = await storage.createFile(bucketId, "unique()", file);
-      // Optionally, you can update file name in database here
-      alert("File uploaded successfully!");
+      //1. Generate  SHA-256 hash value
+      const hash = await getFileHash(file);
+      //2. Check for duplicates
+      const isDuplicate = await checkDuplicateHash(hash);
+      if(isDuplicate){
+        toast.error("This file has already been uploaded.");
+        return;
+      }
+      //3. Upload file to appwrite
+      const uploadResponse = await uploadFileToStorage(file);
+      //4. Save metaData to database
+      await saveFileMetadata(uploadResponse.$id, nfile, hash);
+      
+      toast.success("File uploaded successfully");
       if (onUploadSuccess) onUploadSuccess();
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Upload failed. Please try again.");
+      toast.error("Failed to upload file, PLease try again")
+      console.error(error);
     } finally {
       closeModal();
     }
