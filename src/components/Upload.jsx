@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { storage, db, account } from "../appwriteConfig";
+import { ID } from "appwrite";
 import Modal from "react-modal";
 import { FileUploader } from "react-drag-drop-files";
 import ReactLoading from "react-loading";
@@ -10,6 +12,7 @@ const Upload = ({ onUploadSuccess }) => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [nfile, setNFile] = useState("");
+  const [department, setDepartment] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (file) => setFile(file);
@@ -19,6 +22,7 @@ const Upload = ({ onUploadSuccess }) => {
     setLoading(false);
     setFile(null);
     setNFile("");
+    setDepartment("");
   };
 
   const uploadFileToAppwrite = async () => {
@@ -62,11 +66,15 @@ const Upload = ({ onUploadSuccess }) => {
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
-        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30"
+        shouldCloseOnOverlayClick={true}
+        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50"
         overlayClassName="fixed inset-0"
         ariaHideApp={false}
       >
-        <div className="bg-white rounded-lg p-8 w-full max-w-md">
+        <div
+          className="bg-white rounded-lg p-8 w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
           <h2 className="text-xl font-semibold mb-4">Upload File</h2>
           {loading ? (
             <div className="flex justify-center items-center">
@@ -81,17 +89,36 @@ const Upload = ({ onUploadSuccess }) => {
                 onChange={(e) => setNFile(e.target.value)}
                 className="mb-4 w-full px-3 py-2 border rounded"
               />
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="mb-4 w-full px-3 py-2 border rounded"
+                required
+              >
+                <option value="">Select Department...</option>
+                <option value="Computer Science & Engineering Department">Computer Science & Engineering Department</option>
+                <option value="Electronics and Electrical Department">Electronics and Electrical Department</option>
+                <option value="Mechanical Engineering Department">Mechanical Engineering Department</option>
+                <option value="Civil Engineering Department">Civil Engineering Department</option>
+                <option value="Chemical Technology Department">Chemical Technology Department</option>
+                <option value="Paint Technology Department">Paint Technology Department</option>
+                <option value="Plastic Technology Department">Plastic Technology Department</option>
+                <option value="Oil Technology Department">Oil Technology Department</option>
+                <option value="Food Technology Department">Food Technology Department</option>
+                <option value="Bio Technology Department">Bio Technology Department</option>
+                <option value="Leather Technology Department">Leather Technology Department</option>
+              </select>
               <FileUploader handleChange={handleChange} name="file" />
               <button
                 onClick={uploadFileToAppwrite}
-                disabled={!file || !nfile}
+                disabled={!file || !nfile || !department}
                 className="mt-4 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
               >
                 Upload
               </button>
               <button
                 onClick={closeModal}
-                className="mt-2 ml-2 text-gray-600 hover:underline"
+                className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 transition ml-5"
               >
                 Cancel
               </button>

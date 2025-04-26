@@ -24,6 +24,24 @@ const LandingPage = () => {
     }
   };
 
+  const handleDownload = async (file) => {
+    try {
+      const response = await fetch(file.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed", error);
+      alert("Failed to download file.");
+    }
+  };
+
   const fetchStorageFiles = async () => {
     try {
       const response = await storage.listFiles(bucketId);
@@ -33,11 +51,15 @@ const LandingPage = () => {
         url: storage.getFileView(bucketId, file.$id),
         mimeType: file.mimeType,
         size: file.sizeOriginal,
-        // Optionally, you can add more metadata here
+        createdAt: file.$createdAt,
+        department: file.metadata?.department || 'Unknown',
+        uploaderEmail: file.metadata?.uploaderEmail || 'Unknown',
+        uploaderName: file.metadata?.uploaderName || 'Unknown'
       }));
       setList(files);
       setFilteredList(files);
     } catch (error) {
+      console.error("Error fetching files:", error);
       setList([]);
       setFilteredList([]);
     }
@@ -46,18 +68,37 @@ const LandingPage = () => {
   useEffect(() => {
     getUser();
     fetchStorageFiles();
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
     let filtered = list;
+    
+    // Search filter
     if (itemToBeSearched) {
-      filtered = filtered.filter(
-        (item) =>
-          item.name.toLowerCase().includes(itemToBeSearched.toLowerCase())
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(itemToBeSearched.toLowerCase())
       );
     }
-    // You can add more filter logic for dept/month if you store that info in file metadata
+    
+    // Month filter
+    if (selectedMonth) {
+      filtered = filtered.filter(item => {
+        const fileDate = new Date(item.createdAt);
+        const selectedDate = new Date(selectedMonth);
+        
+        return (
+          fileDate.getFullYear() === selectedDate.getFullYear() &&
+          fileDate.getMonth() === selectedDate.getMonth()
+        );
+      });
+    }
+    
+    // Department filter
+    if (selectedDept !== "ALL") {
+      filtered = filtered.filter(item => 
+        item.department === selectedDept);
+    }
+    
     setFilteredList(filtered);
   }, [itemToBeSearched, selectedDept, selectedMonth, list]);
 
@@ -106,7 +147,7 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Filters (not functional unless you store dept/month info in metadata) */}
+      {/* Filters */}
       <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
         <input
           type="month"
@@ -116,6 +157,7 @@ const LandingPage = () => {
         <select
           className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           onChange={(e) => setSelectedDept(e.target.value)}
+          value={selectedDept}
         >
           <option value="ALL">ALL</option>
           <option value="Computer Science & Engineering Department">
@@ -154,29 +196,60 @@ const LandingPage = () => {
         </select>
       </div>
 
-      {/* List Container */}
-      <main className="flex-1 flex flex-col items-center">
-        <div className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
-          {filteredList.length > 0 ? (
-            filteredList.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
-                <div className="font-semibold text-indigo-700 truncate w-full">{item.name}</div>
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 underline mt-2"
-                >
-                  View / Download
-                </a>
-                <div className="text-xs text-gray-500 mt-1">{item.mimeType} | {(item.size / 1024).toFixed(2)} KB</div>
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center text-gray-500 py-12">
-              No files found.
-            </div>
-          )}
+      {/* Table Container */}
+      <main className="flex-1 flex flex-col items-center w-full">
+        <div className="w-full max-w-6xl px-4 overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 bg-white shadow rounded-lg">
+            <thead className="bg-gray-100 sticky top-0">
+              <tr>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">File Name</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Type</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Size (KB)</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Upload time</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Actions</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Name</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Email</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Department</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredList.length > 0 ? (
+                filteredList.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition">
+                    <td className="py-3 px-4">{item.name}</td>
+                    <td className="py-3 px-4">{item.mimeType}</td>
+                    <td className="py-3 px-4">{(item.size / 1024).toFixed(2)}</td>
+                    <td className="py-3 px-4">{new Date(item.createdAt).toLocaleString()}</td>
+                    <td className="py-3 px-4 flex gap-2">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-700 transition text-sm"
+                      >
+                        View
+                      </a>
+                      <button
+                        onClick={() => handleDownload(item)}
+                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-700 transition text-sm"
+                      >
+                        Download
+                      </button>
+                    </td>
+                    <td className="py-3 px-4">{item.uploaderName}</td>
+                    <td className="py-3 px-4">{item.uploaderEmail}</td>
+                    <td className="py-3 px-4">{item.department}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="text-center py-12 text-gray-500">
+                    No files found matching your criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </main>
 
