@@ -49,7 +49,7 @@ const Upload = ({ onUploadSuccess, onDuplicateFound }) => {
       // 3. Upload file to appwrite
       const uploadResponse = await uploadFileToStorage(file);
       // 4. Save metaData to database
-      await saveFileMetadata(uploadResponse.$id, nfile, hash, uploaderName, uploaderEmail, uploaderDepartment);
+      await saveFileMetadata(uploadResponse.$id, hash, uploaderName, uploaderEmail, uploaderDepartment);
 
       toast.success("File uploaded successfully");
       if (onUploadSuccess) onUploadSuccess();

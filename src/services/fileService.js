@@ -40,14 +40,13 @@ export const checkDuplicateHash = async (hash) => {
  * @returns {Promise<object>} - The created document
  * @throws {Error} - If the operation fails
  */
-export const saveFileMetadata = async (fileId, name, hash, uploaderName, uploaderEmail, uploaderDepartment) => {
+export const saveFileMetadata = async (fileId, hash, uploaderName, uploaderEmail, uploaderDepartment) => {
   try {
-    if (!fileId || !name || !hash || !uploaderName || !uploaderDepartment || !uploaderEmail) {
-      throw new Error("All parameters (fileId, name, hash, uploaderName, uploaderEmail, uploaderDepartment) are required");
+    if (!fileId || !hash || !uploaderName || !uploaderDepartment || !uploaderEmail) {
+      throw new Error("All parameters (fileId, hash, uploaderName, uploaderEmail, uploaderDepartment) are required");
     }
     return await db.createDocument(databaseId, collectionId, "unique()", {
       fileId,
-      name,
       hash,
       uploaderName,
       uploaderEmail,
