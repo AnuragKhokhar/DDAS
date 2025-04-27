@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { IoMdSearch } from "react-icons/io";
 import Upload from "./Upload";
 import { useNavigate } from "react-router-dom";
-import { account, storage } from "../appwriteConfig";
+import { account, storage, db } from "../appwriteConfig";
+import { Query } from "appwrite";
 
 const LandingPage = () => {
   const [list, setList] = useState([]);
@@ -11,9 +12,17 @@ const LandingPage = () => {
   const [selectedDept, setSelectedDept] = useState("ALL");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [holder, setHolder] = useState("");
+  const [duplicateHash, setDuplicateHash] = useState(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const filesPerPage = 10;
+
   const navigate = useNavigate();
 
   const bucketId = process.env.REACT_APP_APPWRITE_BUCKET_ID;
+  const databaseId = process.env.REACT_APP_APPWRITE_DATABASE_ID;
+  const collectionId = process.env.REACT_APP_DATABASE_COLLECTION_ID;
 
   const getUser = async () => {
     try {
@@ -42,70 +51,165 @@ const LandingPage = () => {
     }
   };
 
+  // Fetches storage files and joins with metadata
   const fetchStorageFiles = async () => {
     try {
-      const response = await storage.listFiles(bucketId);
-      const files = response.files.map(file => ({
-        id: file.$id,
-        name: file.name,
-        url: storage.getFileView(bucketId, file.$id),
-        mimeType: file.mimeType,
-        size: file.sizeOriginal,
-        createdAt: file.$createdAt,
-        department: file.metadata?.department || 'Unknown',
-        uploaderEmail: file.metadata?.uploaderEmail || 'Unknown',
-        uploaderName: file.metadata?.uploaderName || 'Unknown'
-      }));
+      // 1. Fetch files from storage
+      const storageResponse = await storage.listFiles(bucketId);
+
+      // 2. Fetch all metadata from database
+      const metadataResponse = await db.listDocuments(databaseId, collectionId);
+
+      // 3. Map fileId to metadata
+      const metadataMap = {};
+      metadataResponse.documents.forEach(doc => {
+        metadataMap[doc.fileId] = doc;
+      });
+
+      // 4. Merge storage file info with metadata
+      const files = storageResponse.files.map(file => {
+        const meta = metadataMap[file.$id] || {};
+        return {
+          id: file.$id,
+          name: file.name,
+          url: storage.getFileView(bucketId, file.$id),
+          mimeType: file.mimeType,
+          size: file.sizeOriginal,
+          createdAt: file.$createdAt,
+          uploaderDepartment: meta.uploaderDepartment || 'Unknown',
+          uploaderEmail: meta.uploaderEmail || 'Unknown',
+          uploaderName: meta.uploaderName || 'Unknown',
+          hash: meta.hash || null // Ensure hash is present for duplicate filtering
+        };
+      });
+
       setList(files);
       setFilteredList(files);
+      setCurrentPage(1); // Reset to first page on refetch
     } catch (error) {
       console.error("Error fetching files:", error);
       setList([]);
       setFilteredList([]);
+      setCurrentPage(1);
     }
   };
 
   useEffect(() => {
     getUser();
     fetchStorageFiles();
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
     let filtered = list;
-    
-    // Search filter
-    if (itemToBeSearched) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(itemToBeSearched.toLowerCase())
-      );
-    }
-    
-    // Month filter
-    if (selectedMonth) {
-      filtered = filtered.filter(item => {
-        const fileDate = new Date(item.createdAt);
-        const selectedDate = new Date(selectedMonth);
-        
-        return (
-          fileDate.getFullYear() === selectedDate.getFullYear() &&
-          fileDate.getMonth() === selectedDate.getMonth()
+
+    // If a duplicate hash is set, filter ONLY for that hash
+    if (duplicateHash) {
+      filtered = list.filter(item => item.hash === duplicateHash);
+    } else {
+      // Search filter
+      if (itemToBeSearched) {
+        filtered = filtered.filter(item =>
+          item.name.toLowerCase().includes(itemToBeSearched.toLowerCase()) ||
+          (item.uploaderName && item.uploaderName.toLowerCase().includes(itemToBeSearched.toLowerCase()))
         );
-      });
+      }
+      // Month filter
+      if (selectedMonth) {
+        filtered = filtered.filter(item => {
+          const fileDate = new Date(item.createdAt);
+          const selectedDate = new Date(selectedMonth);
+          return (
+            fileDate.getFullYear() === selectedDate.getFullYear() &&
+            fileDate.getMonth() === selectedDate.getMonth()
+          );
+        });
+      }
+      // Department filter
+      if (selectedDept !== "ALL") {
+        filtered = filtered.filter(item =>
+          item.uploaderDepartment === selectedDept
+        );
+      }
     }
-    
-    // Department filter
-    if (selectedDept !== "ALL") {
-      filtered = filtered.filter(item => 
-        item.department === selectedDept);
-    }
-    
+
     setFilteredList(filtered);
-  }, [itemToBeSearched, selectedDept, selectedMonth, list]);
+    setCurrentPage(1); // Reset to first page on filter change
+  }, [itemToBeSearched, selectedDept, selectedMonth, list, duplicateHash]);
 
   const signOutUser = async () => {
     await account.deleteSession("current");
     navigate("/");
   };
+
+  // Handler to receive duplicate hash from Upload component
+  const handleDuplicateFound = (hash) => {
+    setDuplicateHash(hash);
+  };
+
+  // Optional: Add a button to reset the duplicate filter
+  const clearDuplicateFilter = () => setDuplicateHash(null);
+
+  // Pagination logic
+  const totalFiles = filteredList.length;
+  const totalPages = Math.ceil(totalFiles / filesPerPage);
+  const indexOfLastFile = currentPage * filesPerPage;
+  const indexOfFirstFile = indexOfLastFile - filesPerPage;
+  const currentFiles = filteredList.slice(indexOfFirstFile, indexOfLastFile);
+
+  const goToPage = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
+  };
+
+  // Tailwind-styled pagination component
+  const Pagination = () => (
+    <nav className="flex justify-center mt-6" aria-label="Table pagination">
+      <ul className="inline-flex -space-x-px text-base h-10">
+        <li>
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`flex items-center justify-center px-4 h-10 ms-0 leading-tight border rounded-s-lg
+              ${currentPage === 1
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-500 border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+              }`}
+          >
+            Previous
+          </button>
+        </li>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <li key={page}>
+            <button
+              onClick={() => goToPage(page)}
+              className={`flex items-center justify-center px-4 h-10 leading-tight border
+                ${currentPage === page
+                  ? "text-blue-600 border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
+                  : "text-gray-500 bg-white border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              aria-current={currentPage === page ? "page" : undefined}
+            >
+              {page}
+            </button>
+          </li>
+        ))}
+        <li>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className={`flex items-center justify-center px-4 h-10 leading-tight border rounded-e-lg
+              ${currentPage === totalPages || totalPages === 0
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-500 border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+              }`}
+          >
+            Next
+          </button>
+        </li>
+      </ul>
+    </nav>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex flex-col">
@@ -115,7 +219,7 @@ const LandingPage = () => {
           Alert System for Data Download Duplication
         </div>
         <div className="flex items-center gap-4">
-          <Upload onUploadSuccess={fetchStorageFiles} />
+          <Upload onUploadSuccess={fetchStorageFiles} onDuplicateFound={handleDuplicateFound} />
           <button
             className="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition"
             onClick={signOutUser}
@@ -127,6 +231,16 @@ const LandingPage = () => {
           </button>
         </div>
       </nav>
+
+      {/* Duplicate Filter Notice */}
+      {duplicateHash && (
+        <div className="text-center my-2">
+          <button onClick={clearDuplicateFilter} className="bg-yellow-400 px-3 py-1 rounded">
+            Show All Files
+          </button>
+          <div className="text-red-600 mt-1">Showing only the duplicate file.</div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="flex justify-center mt-8 mb-4">
@@ -198,7 +312,7 @@ const LandingPage = () => {
 
       {/* Table Container */}
       <main className="flex-1 flex flex-col items-center w-full">
-        <div className="w-full max-w-6xl px-4 overflow-x-auto">
+        <div className="w-full max-w-full px-8 overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-0 bg-white shadow rounded-lg">
             <thead className="bg-gray-100 sticky top-0">
               <tr>
@@ -206,20 +320,23 @@ const LandingPage = () => {
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Type</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Size (KB)</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Upload time</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Actions</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Name</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Email</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700">Department</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredList.length > 0 ? (
-                filteredList.map((item) => (
+              {currentFiles.length > 0 ? (
+                currentFiles.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition">
                     <td className="py-3 px-4">{item.name}</td>
                     <td className="py-3 px-4">{item.mimeType}</td>
                     <td className="py-3 px-4">{(item.size / 1024).toFixed(2)}</td>
-                    <td className="py-3 px-4">{new Date(item.createdAt).toLocaleString()}</td>
+                    <td className="py-3 px-4">{new Date(item.createdAt).toDateString()}</td>
+                    <td className="py-3 px-4">{item.uploaderName}</td>
+                    <td className="py-3 px-4">{item.uploaderEmail}</td>
+                    <td className="py-3 px-4">{item.uploaderDepartment}</td>
                     <td className="py-3 px-4 flex gap-2">
                       <a
                         href={item.url}
@@ -236,9 +353,6 @@ const LandingPage = () => {
                         Download
                       </button>
                     </td>
-                    <td className="py-3 px-4">{item.uploaderName}</td>
-                    <td className="py-3 px-4">{item.uploaderEmail}</td>
-                    <td className="py-3 px-4">{item.department}</td>
                   </tr>
                 ))
               ) : (
@@ -250,6 +364,20 @@ const LandingPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+        {/* Pagination */}
+        {totalPages > 1 && <Pagination />}
+        {/* Showing range info */}
+        <div className="mt-2 text-sm text-gray-600">
+          Showing{" "}
+          {totalFiles === 0
+            ? 0
+            : indexOfFirstFile + 1}{" "}
+          -{" "}
+          {indexOfLastFile > totalFiles
+            ? totalFiles
+            : indexOfLastFile}{" "}
+          of {totalFiles} files
         </div>
       </main>
 

@@ -8,7 +8,7 @@ import { getFileHash } from "../utils/fileUtils";
 import { checkDuplicateHash, saveFileMetadata, uploadFileToStorage } from "../services/fileService";
 import { toast } from "react-toastify";
 
-const Upload = ({ onUploadSuccess }) => {
+const Upload = ({ onUploadSuccess, onDuplicateFound }) => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [nfile, setNFile] = useState("");
@@ -26,29 +26,35 @@ const Upload = ({ onUploadSuccess }) => {
   };
 
   const uploadFileToAppwrite = async () => {
-    if (!file || !nfile) {
+    if (!file) {
       toast.error("Please provide a file and a name.");
       return;
     }
     setLoading(true);
     try {
-      //1. Generate  SHA-256 hash value
+      // 1. Generate SHA-256 hash value
       const hash = await getFileHash(file);
-      //2. Check for duplicates
+      const user = await account.get();
+      const uploaderEmail = user.email;
+      const uploaderName = user.name;
+      const uploaderDepartment = department;
+      // 2. Check for duplicates
       const isDuplicate = await checkDuplicateHash(hash);
-      if(isDuplicate){
+      if (isDuplicate) {
         toast.error("This file has already been uploaded.");
+        // Notify parent about the duplicate hash
+        if (onDuplicateFound) onDuplicateFound(hash);
         return;
       }
-      //3. Upload file to appwrite
+      // 3. Upload file to appwrite
       const uploadResponse = await uploadFileToStorage(file);
-      //4. Save metaData to database
-      await saveFileMetadata(uploadResponse.$id, nfile, hash);
-      
+      // 4. Save metaData to database
+      await saveFileMetadata(uploadResponse.$id, nfile, hash, uploaderName, uploaderEmail, uploaderDepartment);
+
       toast.success("File uploaded successfully");
       if (onUploadSuccess) onUploadSuccess();
     } catch (error) {
-      toast.error("Failed to upload file, PLease try again")
+      toast.error("Failed to upload file, Please try again");
       console.error(error);
     } finally {
       closeModal();
@@ -82,13 +88,6 @@ const Upload = ({ onUploadSuccess }) => {
             </div>
           ) : (
             <>
-              <input
-                type="text"
-                placeholder="Enter file name"
-                value={nfile}
-                onChange={(e) => setNFile(e.target.value)}
-                className="mb-4 w-full px-3 py-2 border rounded"
-              />
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
@@ -111,7 +110,7 @@ const Upload = ({ onUploadSuccess }) => {
               <FileUploader handleChange={handleChange} name="file" />
               <button
                 onClick={uploadFileToAppwrite}
-                disabled={!file || !nfile || !department}
+                disabled={!file || !department}
                 className="mt-4 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
               >
                 Upload
