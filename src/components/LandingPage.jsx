@@ -3,7 +3,6 @@ import { IoMdSearch } from "react-icons/io";
 import Upload from "./Upload";
 import { useNavigate } from "react-router-dom";
 import { account, storage, db } from "../appwriteConfig";
-import { Query } from "appwrite";
 
 const LandingPage = () => {
   const [list, setList] = useState([]);
@@ -46,7 +45,6 @@ const LandingPage = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Download failed", error);
       alert("Failed to download file.");
     }
   };
@@ -56,7 +54,6 @@ const LandingPage = () => {
     try {
       // 1. Fetch files from storage
       const storageResponse = await storage.listFiles(bucketId);
-
       // 2. Fetch all metadata from database
       const metadataResponse = await db.listDocuments(databaseId, collectionId);
 
@@ -87,7 +84,6 @@ const LandingPage = () => {
       setFilteredList(files);
       setCurrentPage(1); // Reset to first page on refetch
     } catch (error) {
-      console.error("Error fetching files:", error);
       setList([]);
       setFilteredList([]);
       setCurrentPage(1);
@@ -147,7 +143,6 @@ const LandingPage = () => {
     setDuplicateHash(hash);
   };
 
-  // Optional: Add a button to reset the duplicate filter
   const clearDuplicateFilter = () => setDuplicateHash(null);
 
   // Pagination logic
@@ -214,20 +209,17 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex flex-col">
       {/* Navbar */}
-      <nav className="flex justify-between items-center px-6 py-4 shadow bg-white">
-        <div className="text-2xl font-bold text-indigo-700 tracking-tight">
+      <nav className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 py-3 shadow bg-white gap-3">
+        <div className="text-xl sm:text-2xl font-bold text-indigo-700 text-center">
           Alert System for Data Download Duplication
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Upload onUploadSuccess={fetchStorageFiles} onDuplicateFound={handleDuplicateFound} />
           <button
-            className="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition"
+            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
             onClick={signOutUser}
           >
             LOGOUT
-          </button>
-          <button className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center shadow">
-            {holder ? holder[0].toUpperCase() : ""}
           </button>
         </div>
       </nav>
@@ -243,33 +235,33 @@ const LandingPage = () => {
       )}
 
       {/* Search Bar */}
-      <div className="flex justify-center mt-8 mb-4">
-        <div className="flex w-full max-w-xl bg-white rounded-lg shadow">
+      <div className="flex justify-center mt-6 mb-3 px-2">
+        <div className="flex w-full max-w-lg bg-white rounded-lg shadow">
           <input
             type="text"
-            className="flex-1 px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="flex-1 px-3 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
             placeholder="Enter Name of file or uploader..."
             value={itemToBeSearched}
             onChange={(e) => setItemToBeSearched(e.target.value)}
           />
           <button
-            className="px-4 bg-indigo-500 text-white rounded-r-lg hover:bg-indigo-600 transition"
+            className="px-3 bg-indigo-500 text-white rounded-r-lg hover:bg-indigo-600 transition"
             onClick={() => setItemToBeSearched(itemToBeSearched)}
           >
-            <IoMdSearch size={22} />
+            <IoMdSearch size={20} />
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row justify-center gap-3 mb-4 px-2">
         <input
           type="month"
-          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
           onChange={(e) => setSelectedMonth(e.target.value)}
         />
         <select
-          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
           onChange={(e) => setSelectedDept(e.target.value)}
           value={selectedDept}
         >
@@ -312,43 +304,65 @@ const LandingPage = () => {
 
       {/* Table Container */}
       <main className="flex-1 flex flex-col items-center w-full">
-        <div className="w-full max-w-full px-8 overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 bg-white shadow rounded-lg">
-            <thead className="bg-gray-100 sticky top-0">
-              <tr>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">File Name</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Type</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Size (KB)</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Upload time</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Name</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Uploader Email</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Department</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700">Actions</th>
+        <div className="w-full max-w-full px-2 sm:px-6 overflow-x-auto">
+          <table className="min-w-full border-collapse block md:table bg-white shadow rounded-lg">
+            <thead className="hidden md:table-header-group bg-gray-100 sticky top-0 z-10">
+              <tr className="block md:table-row">
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">File Name</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Type</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Size (KB)</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Upload time</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Uploader Name</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Uploader Email</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Department</th>
+                <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="block md:table-row-group">
               {currentFiles.length > 0 ? (
                 currentFiles.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition">
-                    <td className="py-3 px-4">{item.name}</td>
-                    <td className="py-3 px-4">{item.mimeType}</td>
-                    <td className="py-3 px-4">{(item.size / 1024).toFixed(2)}</td>
-                    <td className="py-3 px-4">{new Date(item.createdAt).toDateString()}</td>
-                    <td className="py-3 px-4">{item.uploaderName}</td>
-                    <td className="py-3 px-4">{item.uploaderEmail}</td>
-                    <td className="py-3 px-4">{item.uploaderDepartment}</td>
-                    <td className="py-3 px-4 flex gap-2">
+                  <tr key={item.id} className="bg-white border-b border-gray-200 block md:table-row hover:bg-gray-50 transition">
+                    <td className="p-2 block md:table-cell text-xs break-words">
+                      <span className="font-semibold md:hidden block">File Name: </span>
+                      {item.name}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs">
+                      <span className="font-semibold md:hidden block">Type: </span>
+                      {item.mimeType}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs">
+                      <span className="font-semibold md:hidden block">Size (KB): </span>
+                      {(item.size / 1024).toFixed(2)}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs">
+                      <span className="font-semibold md:hidden block">Upload time: </span>
+                      {new Date(item.createdAt).toDateString()}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs">
+                      <span className="font-semibold md:hidden block">Uploader Name: </span>
+                      {item.uploaderName}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs break-all">
+                      <span className="font-semibold md:hidden block">Uploader Email: </span>
+                      {item.uploaderEmail}
+                    </td>
+                    <td className="p-2 block md:table-cell text-xs">
+                      <span className="font-semibold md:hidden block">Department: </span>
+                      {item.uploaderDepartment}
+                    </td>
+                    <td className="p-2 block md:table-cell flex-col md:flex-row gap-1">
+                      <span className="font-semibold md:hidden block">Actions: </span>
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-700 transition text-sm"
+                        className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-700 transition text-xs text-center"
                       >
                         View
                       </a>
                       <button
                         onClick={() => handleDownload(item)}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-700 transition text-sm"
+                        className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-700 transition text-xs"
                       >
                         Download
                       </button>
@@ -356,8 +370,8 @@ const LandingPage = () => {
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-gray-500">
+                <tr className="block md:table-row">
+                  <td colSpan={8} className="text-center py-8 text-gray-500 block md:table-cell">
                     No files found matching your criteria.
                   </td>
                 </tr>
@@ -369,21 +383,13 @@ const LandingPage = () => {
         {totalPages > 1 && <Pagination />}
         {/* Showing range info */}
         <div className="mt-2 text-sm text-gray-600">
-          Showing{" "}
-          {totalFiles === 0
-            ? 0
-            : indexOfFirstFile + 1}{" "}
-          -{" "}
-          {indexOfLastFile > totalFiles
-            ? totalFiles
-            : indexOfLastFile}{" "}
-          of {totalFiles} files
+          Showing {totalFiles === 0 ? 0 : indexOfFirstFile + 1} - {indexOfLastFile > totalFiles ? totalFiles : indexOfLastFile} of {totalFiles} files
         </div>
       </main>
 
       {/* Footer */}
       <footer className="mt-8 py-4 bg-white text-center text-gray-500 shadow-inner">
-        <span className="text-lg">Made with <span className="text-pink-500">💖</span> © Alert System for Data Download Duplication</span>
+        <span className="text-base sm:text-lg">Made with <span className="text-pink-500">💖</span> © Alert System for Data Download Duplication</span>
       </footer>
     </div>
   );
