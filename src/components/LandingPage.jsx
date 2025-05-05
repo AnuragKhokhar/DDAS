@@ -306,7 +306,7 @@ const LandingPage = () => {
       <main className="flex-1 flex flex-col items-center w-full">
         <div className="w-full max-w-full px-2 sm:px-6 overflow-x-auto">
           <table className="min-w-full border-collapse block md:table bg-white shadow rounded-lg">
-            <thead className="hidden md:table-header-group bg-gray-100 sticky top-0 z-10">
+            <thead className="hidden md:table-header-group bg-gray-100 sticky top-0">
               <tr className="block md:table-row">
                 <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">File Name</th>
                 <th className="p-2 text-left font-semibold text-gray-700 block md:table-cell">Type</th>
